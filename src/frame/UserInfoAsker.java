@@ -44,11 +44,11 @@ public class UserInfoAsker extends StatusBarFrame {
     }
     
     public String getUserName() {
-        return isDisposed() ? null : TF_NAME.getText();
+        return TF_NAME.getText();
     }
     
     public String getPassword() {
-        return isDisposed() ? null : new String(TF_PASSWD.getPassword());
+        return new String(TF_PASSWD.getPassword());
     }
     
     public boolean waitValidInfo() {

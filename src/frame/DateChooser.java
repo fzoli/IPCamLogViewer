@@ -16,22 +16,31 @@ import frame.table.ListTableModelHelper;
 import frame.table.ListTableSelectionListener;
 import frame.toolbar.ToolbarUtils;
 import http.HttpExecutor;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import javax.swing.*;
+import net.sf.jipcam.axis.MjpegFrame;
+import net.sf.jipcam.axis.MjpegInputStream;
+import resources.ResourceUtils;
+import sun.misc.BASE64Encoder;
 
 public class DateChooser extends StatusBarFrame {
 
     private FileInfoListViewer viewer;
     
-    private final String rootUrl;
+    private final boolean auth;
+    private final UserInfoAsker asker;
+    private final String rootUrl, camUrl;
     private final HttpExecutor executor;
     private final FileInfoParser parser;
     
@@ -41,6 +50,7 @@ public class DateChooser extends StatusBarFrame {
     private final TitledComboBox CB_MONTH = new TitledComboBox("Hónap");
     private final TitledComboBox CB_DAY = new TitledComboBox("Nap");
     private final JButton BT_CHECK = ToolbarUtils.createToolbarButton("check.png", "Képek böngészése (Szóköz)");
+    private final JButton BT_CAMERA = ToolbarUtils.createToolbarButton("camera.png", "Élő kamerakép");
     private final HashMap<Object, String> tmp = new HashMap<Object, String>();
     
     private final ListTable table = new ListTable(new ListTableSelectionListener() {
@@ -58,10 +68,13 @@ public class DateChooser extends StatusBarFrame {
     private JScrollPane scrollPane;
     private List<TitledComboBox> order;
     
-    public DateChooser(String rootUrl, HttpExecutor executor, FileInfoParser parser) {
+    public DateChooser(String rootUrl, HttpExecutor executor, FileInfoParser parser, boolean auth, String camUrl, UserInfoAsker asker) {
         this.executor = executor;
         this.parser = parser;
         this.rootUrl = rootUrl;
+        this.camUrl = camUrl;
+        this.asker = asker;
+        this.auth = auth;
         initFrame();
     }
     
@@ -97,6 +110,7 @@ public class DateChooser extends StatusBarFrame {
         tbc.weightx = 0;
         tbc.insets = new Insets(2, 0, 2, 3);
         tb.add(BT_CHECK, tbc);
+        tb.add(BT_CAMERA, tbc);
         add(tb, c);
         
         c.gridy = 2;
@@ -112,6 +126,71 @@ public class DateChooser extends StatusBarFrame {
         setVisible(true);
         StatusBarUtils.setMinimumFrameWidth(tb, this);
         updateTypeCb();
+        
+    }
+    
+    private JLabel lb;
+    private HttpURLConnection conn;
+    
+    private void showLiveStream() {
+        BT_CAMERA.setEnabled(false);
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                lb = new JLabel(new ImageIcon());
+                new JFrame() {
+                    {   
+                        setTitle("Élő kamerakép");
+                        setIconImage(ResourceUtils.getImage("icon.png"));
+                        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+                        getContentPane().setPreferredSize(new Dimension(640, 480));
+                        add(lb);
+                        pack();
+                        setLocationRelativeTo(null);
+                        setResizable(false);
+                        setVisible(true);
+                        try {
+                            conn = (HttpURLConnection) new URL(camUrl).openConnection();
+                            conn.setRequestMethod("GET");
+                            if (auth) {
+                                String userpass = asker.getUserName() + ":" + asker.getPassword();
+                                BASE64Encoder encoder = new BASE64Encoder();
+                                String basicAuth = "Basic " + encoder.encode(userpass.getBytes());
+                                conn.setRequestProperty ("Authorization", basicAuth);
+                            }
+                            conn.connect();
+                            MjpegInputStream mjpegin = new MjpegInputStream(conn.getInputStream());
+                            MjpegFrame fr;
+                            try {
+                                while((fr = mjpegin.readMjpegFrame()) != null) {
+                                    lb.setIcon(new ImageIcon(fr.getImage()));
+                                }
+                            }
+                            catch (Exception ex) {
+                                dispose();
+                            }
+                        }
+                        catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void dispose() {
+                        if (lb != null) {
+                            BT_CAMERA.setEnabled(true);
+                            conn.disconnect();
+                            conn = null;
+                            lb = null;
+                            super.dispose();
+                        }
+                    }
+                    
+                };
+            }
+            
+        }).start();
     }
     
     private void enableNextCb(Object src, boolean b) {
@@ -145,6 +224,14 @@ public class DateChooser extends StatusBarFrame {
                 if (listFi != null && !listFi.isEmpty() && e.getKeyCode() == KeyEvent.VK_SPACE) {
                     showBrowser();
                 }
+            }
+            
+        });
+        BT_CAMERA.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showLiveStream();
             }
             
         });
