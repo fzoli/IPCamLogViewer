@@ -126,7 +126,6 @@ public class DateChooser extends StatusBarFrame {
         setVisible(true);
         StatusBarUtils.setMinimumFrameWidth(tb, this);
         updateTypeCb();
-        
     }
     
     private JLabel lb;
@@ -172,13 +171,14 @@ public class DateChooser extends StatusBarFrame {
                             }
                         }
                         catch (Exception ex) {
-                            ex.printStackTrace();
+                            dispose();
                         }
                     }
 
                     @Override
                     public void dispose() {
                         if (lb != null) {
+                            if (!DateChooser.this.isVisible()) DateChooser.this.setVisible(true);
                             BT_CAMERA.setEnabled(true);
                             conn.disconnect();
                             conn = null;
@@ -221,7 +221,7 @@ public class DateChooser extends StatusBarFrame {
 
             @Override
             public void keyPressed(KeyEvent e) {
-                if (listFi != null && !listFi.isEmpty() && e.getKeyCode() == KeyEvent.VK_SPACE) {
+                if (viewer == null && listFi != null && !listFi.isEmpty() && e.getKeyCode() == KeyEvent.VK_SPACE) {
                     showBrowser();
                 }
             }
@@ -240,6 +240,17 @@ public class DateChooser extends StatusBarFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (!listFi.isEmpty()) showBrowser();
+            }
+            
+        });
+        
+        addWindowListener(new WindowAdapter() {
+
+            @Override
+            public void windowIconified(WindowEvent e) {
+                if (lb != null) {
+                    setVisible(false);
+                }
             }
             
         });
@@ -338,6 +349,7 @@ public class DateChooser extends StatusBarFrame {
             public void windowClosed(WindowEvent e) {
                 setButtonsEnabled(true);
                 setVisible(true);
+                viewer = null;
             }
 
         });
