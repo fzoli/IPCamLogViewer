@@ -6,6 +6,7 @@ import frame.DateChooser;
 import frame.UserInfoAsker;
 import frame.statusbar.StatusBar;
 import http.HttpExecutor;
+import java.awt.GraphicsEnvironment;
 import javax.swing.UIManager;
 import org.apache.http.HttpStatus;
 
@@ -22,9 +23,21 @@ public class Main {
     private static boolean local = false;
     
     private static void setLookAndFeel() {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ex) {}
+        if (!GraphicsEnvironment.isHeadless()) {
+            try {
+                // Linuxra GTK LAF beállítása
+                UIManager.setLookAndFeel("com.sun.java.swing.plaf.gtk.GTKLookAndFeel");
+            }
+            catch (Exception ex) {
+                // Ha nem Linuxon fut a program, rendszer LAF beállítása
+                try {
+                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                }
+                catch (Exception e) {
+                    ;
+                }
+            }
+        }
     }
     
     public static void main(String[] args) throws Exception {
