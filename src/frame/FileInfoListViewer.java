@@ -255,6 +255,7 @@ public class FileInfoListViewer extends StatusBarFrame {
         setPlayPauseIcon();
         setBackNextButtonEnabled(false);
         getStatusBar().setProgress("Lejátszás...");
+        setRefreshButtonEnabled(false);
         PLAY_TIMER.start();
     }
     
@@ -263,6 +264,7 @@ public class FileInfoListViewer extends StatusBarFrame {
         setPlayPauseIcon();
         setPlayPauseEnabled();
         getStatusBar().reset();
+        setRefreshButtonEnabled(true);
         PLAY_TIMER.stop();
         setBackNextEnabled();
     }
@@ -282,7 +284,7 @@ public class FileInfoListViewer extends StatusBarFrame {
     
     private void loadImage(final boolean setStatusBarAndButtons) {
         setBackNextButtonEnabled(false);
-        if (setStatusBarAndButtons) getStatusBar().setProgress("Kép betöltése...");
+        if (setStatusBarAndButtons && !playing) getStatusBar().setProgress("Kép betöltése...");
         SwingWorker sw = new SwingWorker() {
 
             @Override
@@ -296,7 +298,9 @@ public class FileInfoListViewer extends StatusBarFrame {
                 if (setStatusBarAndButtons) {
                     setBackNextEnabled();
                     setPlayPauseEnabled();
-                    if (lastLoadOk) getStatusBar().reset();
+                    if (lastLoadOk) {
+                        if (!playing) getStatusBar().reset();
+                    }
                     else {
                         String err = "";
                         switch (errcode) {
@@ -376,12 +380,13 @@ public class FileInfoListViewer extends StatusBarFrame {
     }
     
     private void setBackNextEnabled() {
-        BT_BACK.setEnabled(index > 0);
-        BT_NEXT.setEnabled(index < getLastIndex());
-        BT_SFBACK.setEnabled(index > 0);
-        BT_SFNEXT.setEnabled(index < getLastIndex());
-        BT_FFBACK.setEnabled(index > 0);
-        BT_FFNEXT.setEnabled(index < getLastIndex());
+        BT_BACK.setEnabled(!playing && index > 0);
+        BT_NEXT.setEnabled(!playing && index < getLastIndex());
+        BT_SFBACK.setEnabled(!playing && index > 0);
+        BT_SFNEXT.setEnabled(!playing && index < getLastIndex());
+        BT_FFBACK.setEnabled(!playing && index > 0);
+        BT_FFNEXT.setEnabled(!playing && index < getLastIndex());
+        setRefreshButtonEnabled(!playing);
     }
     
     private int getLastIndex() {
@@ -445,6 +450,7 @@ public class FileInfoListViewer extends StatusBarFrame {
     }
     
     private void setRefreshButtonEnabled(boolean b) {
+        if (BT_REFRESH.isEnabled() == b) return;
         boolean test = true;
         if (!IMGS.isEmpty()) {
             Calendar cn = Calendar.getInstance();
