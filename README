@@ -1,0 +1,22 @@
+Magamnak, otthoni térfigyelő rendszerhez írt segédalkalmazás.
+
+Konfiguráció:
+- TP-Link TL-WR1043ND router, OpenWRT firmware
+  (vagy bármilyen gép, amire köthető nagy kapacitású háttértár és hálózat, Linux OS)
+- TP-Link TL-SC3171 IP-kamera
+  (vagy bármilyen IP-kamera, ami képes MJPEG stream leadására)
+- lighttpd webszerver, SSL beállítás + authentikáció
+- motion nevű alkalmazás és konfigurálás az IP kamerához
+  és a pillanatképek helyének megadása a webszerver alá
+
+A fenti konfiguráció segítségével webről és LAN-ról is elérhető jelszóvédetten,
+biztonságosan az összes pillanatkép (és csak a mozgások vannak tárolva).
+A gond csak az, hogy elég macerás több száz kép lapozása kézzel a böngészőben.
+Erre írtam ezt az alkalmazást, ami automatikusan betölti a listát és kérésre
+nagy FPS-sel lapozza, hogy folyamatosnak tűnjön a mozgás.
+
+LAN-ról kapcsolódva az OpenWRT alapértelmezett szerveréhez kapcsolódik az alkalmazás,
+ami csak LAN-ról érhető el és nem kér jelszót, így a felhasználónév és jelszó
+beírása csak WAN oldalról szükséges.
+A program induláskor megkísérli elérni IP-cím alapján a LAN szervert, ha sikerül neki,
+automatikusan a dátumválasztóra ugrik, egyéb esetben kér nevet és jelszót.
