@@ -63,7 +63,7 @@ public class Main {
             
         }).start();
         if(!asker.waitValidInfo() && !local) return;
-        asker.dispose();
+        if (!asker.isDisposed()) asker.dispose();
         if (local) dateChooser = new DateChooser(LOCAL_ROOT_URL, e, new UhttpdFileInfoParser(), false, LOCAL_LIVE_URL, asker);
         else dateChooser = new DateChooser(ROOT_URL, e, new LighttpdFileInfoParser(), true, LIVE_URL, asker);
     }
