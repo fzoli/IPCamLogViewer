@@ -14,10 +14,10 @@ public class Main {
 
     public static DateChooser dateChooser;
     
-    public static final String ROOT_URL = "https://fzoli.dyndns.org/private/motion/";
+    public static final String ROOT_URL = "https://farcsal.hu/private/motion/";
     public static final String LOCAL_ROOT_URL = "http://192.168.10.254:8008/motion/";
 
-    public static final String LIVE_URL = "https://fzoli.dyndns.org/ipcam/cam0";
+    public static final String LIVE_URL = "https://farcsal.hu/ipcam/cam0";
     public static final String LOCAL_LIVE_URL = "http://192.168.10.254:9000";
     
     private static boolean local = false;
