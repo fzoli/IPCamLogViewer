@@ -9,7 +9,9 @@ import org.apache.http.auth.AuthenticationException;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -22,6 +24,12 @@ public class HttpExecutor {
     private String url, encode;
     private final HttpClient HTTP_CLIENT;
     private UsernamePasswordCredentials creds = null;
+    
+    private RequestType type = RequestType.POST;
+    
+    public static enum RequestType {
+        GET, POST
+    }
     
     public HttpExecutor(String url) {
         this(url, true, false, null, null);
@@ -75,6 +83,12 @@ public class HttpExecutor {
             }
         }
         if (withCreds) creds = new UsernamePasswordCredentials(usr, passwd);
+    }
+
+    public HttpExecutor setRequestType(RequestType type) {
+        if (type == null) type = RequestType.GET;
+        this.type = type;
+        return this;
     }
     
     public int getStatus() {
@@ -160,11 +174,21 @@ public class HttpExecutor {
     
     private InputStream execute(Map<String, String> map) {
         UrlEncodedFormEntity entity = createFormEntity(map);
-        HttpPost post = new HttpPost(url);
-        post.setEntity(entity);
+        HttpRequestBase req;
+        
+        if (RequestType.GET == type) {
+            HttpGet get = new HttpGet(url);
+            req = get;
+        }
+        else {
+            HttpPost post = new HttpPost(url);
+            req = post;
+            post.setEntity(entity);
+        }
+
         try {        
-            if (creds != null) post.addHeader(new BasicScheme().authenticate(creds, post));
-            HttpResponse response = HTTP_CLIENT.execute(post);
+            if (creds != null) req.addHeader(new BasicScheme().authenticate(creds, req));
+            HttpResponse response = HTTP_CLIENT.execute(req);
             return getResponseStream(response);
         } catch (AuthenticationException ex) {
             //ex.printStackTrace();

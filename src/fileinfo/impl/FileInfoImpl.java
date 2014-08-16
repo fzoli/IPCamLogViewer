@@ -58,5 +58,10 @@ public class FileInfoImpl implements FileInfo {
     public String getType() {
         return isDirectory() ? null : TYPE;
     }
-        
+
+    @Override
+    public String toString() {
+        return getName() + " - " + getType() + " - " + getExtension() + " - " + getLastModified() + " - " + getSize();
+    }
+    
 }

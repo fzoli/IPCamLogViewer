@@ -73,8 +73,9 @@ public class LighttpdFileInfoParser implements FileInfoParser {
         }
     }
     
-    private static long parseSize(String size) {
+    public static long parseSize(String size) {
         try {
+            size = size.trim();
             int lastIndex = size.length() - 1;
             char prefix = size.charAt(lastIndex);
             if (prefix != 'K' && prefix != 'M' && prefix != 'G') {

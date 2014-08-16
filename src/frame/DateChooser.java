@@ -15,7 +15,6 @@ import frame.table.ListTableModel;
 import frame.table.ListTableModelHelper;
 import frame.table.ListTableSelectionListener;
 import frame.toolbar.ToolbarUtils;
-import http.HttpExecutor;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -29,6 +28,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import javax.swing.*;
+import main.Server;
 import net.sf.jipcam.axis.MjpegFrame;
 import net.sf.jipcam.axis.MjpegInputStream;
 import resources.ResourceUtils;
@@ -40,10 +40,10 @@ public class DateChooser extends StatusBarFrame {
     
     private final boolean auth;
     private final UserInfoAsker asker;
-    private final String rootUrl, camUrl;
-    private final HttpExecutor executor;
-    private final FileInfoParser parser;
+    private final String camUrl;
+    private final Server[] servers;
     
+    private final TitledComboBox CB_SERVER = new TitledComboBox("Szerver");
     private final TitledComboBox CB_TYPE = new TitledComboBox("Típus");
     private final TitledComboBox CB_CAM = new TitledComboBox("Kamera");
     private final TitledComboBox CB_YEAR = new TitledComboBox("Év");
@@ -68,10 +68,8 @@ public class DateChooser extends StatusBarFrame {
     private JScrollPane scrollPane;
     private List<TitledComboBox> order;
     
-    public DateChooser(String rootUrl, HttpExecutor executor, FileInfoParser parser, boolean auth, String camUrl, UserInfoAsker asker) {
-        this.executor = executor;
-        this.parser = parser;
-        this.rootUrl = rootUrl;
+    public DateChooser(Server[] servers, boolean auth, String camUrl, UserInfoAsker asker) {
+        this.servers = servers;
         this.camUrl = camUrl;
         this.asker = asker;
         this.auth = auth;
@@ -92,6 +90,7 @@ public class DateChooser extends StatusBarFrame {
         
         JPanel cbPanel = new JPanel(new GridLayout(1, 5, 3, 3));
         cbPanel.setOpaque(false);
+        cbPanel.add(CB_SERVER);
         cbPanel.add(CB_TYPE);
         cbPanel.add(CB_CAM);
         cbPanel.add(CB_YEAR);
@@ -115,17 +114,25 @@ public class DateChooser extends StatusBarFrame {
         
         c.gridy = 2;
         c.weighty = 1;
-        scrollPane = ScrollPaneUtils.createDefaultScrollPane(table, 640, 380);
+        scrollPane = ScrollPaneUtils.createDefaultScrollPane(table, 660, 380);
         add(scrollPane, c);
         
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         pack();
         setLocationRelativeTo(this);
+        initServerCb();
         setActionListeners();
         
         setVisible(true);
         StatusBarUtils.setMinimumFrameWidth(tb, this);
         updateTypeCb();
+    }
+    
+    private void initServerCb() {
+        for (Server s : servers) {
+            CB_SERVER.addItem(s);
+        }
+        CB_SERVER.getModel().setSelectedItem(servers[0]);
     }
     
     private JLabel lb;
@@ -193,21 +200,30 @@ public class DateChooser extends StatusBarFrame {
         }).start();
     }
     
+    private Server getServer() {
+        Object selected = CB_SERVER.getModel().getSelectedItem();
+        if (selected == null) return servers[0];
+        return (Server) selected;
+    }
+    
     private void enableNextCb(Object src, boolean b) {
-        List<TitledComboBox> l = order;
-        int i = l.indexOf(src) + 1;
-        if (i >= l.size()) return;
-        l.get(i).setEnabled(b);
+        int i = order.indexOf(src) + 1;
+        if (i >= order.size()) return;
+        order.get(i).setEnabled(b);
     }
     
     private void resetAndDisableCbs(Object src) {
+        int start = order.indexOf(src) + 1;
+        resetAndDisableCbs(start);
+    }
+    
+    private void resetAndDisableCbs(int start) {
         index = 0;
         ListTableModel m = new ListTableModel();
         table.setModel(m);
-        List<TitledComboBox> l = order;
-        int start = l.indexOf(src) + 1;
-        for (int i = start; i < l.size(); i++) {
-            TitledComboBox cb = l.get(i);
+        
+        for (int i = start; i < order.size(); i++) {
+            TitledComboBox cb = order.get(i);
             cb.setEnabled(false);
             cb.setActionCommand("resetting");
             cb.removeAllItems();
@@ -255,6 +271,17 @@ public class DateChooser extends StatusBarFrame {
             
         });
         
+        CB_SERVER.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                BT_CHECK.setEnabled(false);
+                updateTypeCb();
+                resetAndDisableCbs(1);
+            }
+            
+        });
+        
         ActionListener cbl = new ActionListener() {
 
             @Override
@@ -264,6 +291,7 @@ public class DateChooser extends StatusBarFrame {
                 String obj = (String)((TitledComboBox)src).getSelectedItem();
                 if (tmp.get(src) == obj) return;
                 tmp.put(src, obj);
+                BT_CHECK.setEnabled(false);
                 if (src == CB_DAY) {
                     updateFiList();
                 }
@@ -286,7 +314,7 @@ public class DateChooser extends StatusBarFrame {
     }
     
     private List<FriendlyFileInfo> getFileInfoList(String url) {
-        return FileInfoUtils.getFileInfoList(executor, parser, url);
+        return FileInfoUtils.getFileInfoList(getServer().executor, getServer().parser, url);
     }
     
     private void setButtonsEnabled(boolean b) {
@@ -303,14 +331,14 @@ public class DateChooser extends StatusBarFrame {
         BT_CHECK.setEnabled(false);
         getStatusBar().setProgress("Képlista betöltése...");
         String url = createUrl(CB_DAY);
-        executor.setUrl(url);
+        getServer().executor.setUrl(url);
         SwingWorker sw = new SwingWorker() {
 
             @Override
             protected Object doInBackground() throws Exception {
-                parser.setSrc(executor.getResponse());
-                listFi = parser.getFileInfoList("jpg");
-                if (executor.getStatus() == FileInfoParser.OK) {
+                getServer().parser.setSrc(getServer().executor.getResponse());
+                listFi = getServer().parser.getFileInfoList("jpg");
+                if (getServer().executor.getStatus() == FileInfoParser.OK) {
                     getStatusBar().reset();
                     if (listFi.isEmpty()) getStatusBar().setMessage("A kiválasztott dátumhoz nincs naplózás.");
                     else {
@@ -341,8 +369,8 @@ public class DateChooser extends StatusBarFrame {
     private void showBrowser() {
         setButtonsEnabled(false);
         final String url = createUrl(CB_DAY);
-        executor.setUrl(url);
-        viewer = new FileInfoListViewer(url, executor, listFi, index);
+        getServer().executor.setUrl(url);
+        viewer = new FileInfoListViewer(url, getServer().executor, listFi, index);
         viewer.addWindowListener(new WindowAdapter() {
 
             @Override
@@ -356,20 +384,13 @@ public class DateChooser extends StatusBarFrame {
         setVisible(false);
     }
     
-    private boolean isAllCbSelected(Object source) {
-        for (TitledComboBox cb : order) {
-            if (!cb.isSelected() && !cb.equals(source)) return false;
-        }
-        return true;
-    }
-    
     private String createUrl(Object source) {
         return createUrl(-1, source);
     }
     
     private String createUrl(int limit, Object source) {
         List<TitledComboBox> order = createOrderedList();
-        StringBuilder sb = new StringBuilder(rootUrl);
+        StringBuilder sb = new StringBuilder(getServer().rootUrl);
         int i = 0;
         for (TitledComboBox cb : order) {
             if (limit == i) break;
@@ -388,7 +409,7 @@ public class DateChooser extends StatusBarFrame {
     }
     
     private void updateTypeCb() {
-        updateCb(rootUrl, CB_TYPE, null);
+        updateCb(getServer().rootUrl, CB_TYPE, null);
     }
     
     private void updateCb(final String url, final TitledComboBox cb, final Object src) {
@@ -413,7 +434,7 @@ public class DateChooser extends StatusBarFrame {
                 catch(Exception ex) {
                     isEx = true;
                 }
-                int code = executor.getStatus();
+                int code = getServer().executor.getStatus();
                 if (isEx || code != FileInfoParser.OK) {
                     getStatusBar().setError("Kapcsolódás hiba: " + code);
                     CB_TYPE.setEnabled(true);
