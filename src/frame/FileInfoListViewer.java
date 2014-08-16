@@ -295,13 +295,14 @@ public class FileInfoListViewer extends StatusBarFrame {
                 catch(Exception ex) {
                     lastLoadOk = false;
                 }
-                if (setStatusBarAndButtons) {
+                if (setStatusBarAndButtons || !lastLoadOk) {
                     setBackNextEnabled();
                     setPlayPauseEnabled();
                     if (lastLoadOk) {
                         if (!playing) getStatusBar().reset();
                     }
                     else {
+                        if (playing) stopPlayImage();
                         String err = "";
                         switch (errcode) {
                             case 1:

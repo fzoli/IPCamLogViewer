@@ -159,6 +159,8 @@ public class DateChooser extends StatusBarFrame {
                         try {
                             conn = (HttpURLConnection) new URL(camUrl).openConnection();
                             conn.setRequestMethod("GET");
+                            conn.setConnectTimeout(10000);
+                            conn.setReadTimeout(10000);
                             if (auth) {
                                 String userpass = asker.getUserName() + ":" + asker.getPassword();
                                 BASE64Encoder encoder = new BASE64Encoder();
@@ -174,23 +176,38 @@ public class DateChooser extends StatusBarFrame {
                                 }
                             }
                             catch (Exception ex) {
-                                dispose();
+                                alertAndDispose("Hiba történt az élő kamerakép frissítése közben.");
                             }
                         }
                         catch (Exception ex) {
-                            dispose();
+                            alertAndDispose("Nem sikerült az élő kameraképhez kapcsolódni.");
                         }
                     }
 
+                    private void alertAndDispose(final String msg) {
+                        if (lb != null) {
+                            final JFrame frame = this;
+                            new Thread() {
+
+                                @Override
+                                public void run() {
+                                    JOptionPane.showMessageDialog(frame, msg, "Hálózati hiba", JOptionPane.ERROR_MESSAGE);
+                                }
+                                
+                            }.start();
+                        }
+                        dispose();
+                    }
+                    
                     @Override
                     public void dispose() {
                         if (lb != null) {
+                            lb = null;
                             if (!DateChooser.this.isVisible()) DateChooser.this.setVisible(true);
                             BT_CAMERA.setEnabled(true);
+                            super.dispose();
                             conn.disconnect();
                             conn = null;
-                            lb = null;
-                            super.dispose();
                         }
                     }
                     
