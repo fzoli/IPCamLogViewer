@@ -45,11 +45,11 @@ public class Main {
     
     public static void main(String[] args) throws Exception {
         setLookAndFeel();
-        final Server LS1 = Server.create("Router LAN", LOCAL_ROOT_URL_S1, new UhttpdFileInfoParser());
-        final Server RS1 = Server.create("Router WAN", ROOT_URL_S1, new LighttpdFileInfoParser());
-        final Server LS2 = Server.create("Debian LAN", LOCAL_ROOT_URL_S2, new ApacheFileInfoParser());
-        final Server RS2 = Server.create("Debian WAN", ROOT_URL_S2, new ApacheFileInfoParser());
-        final UserInfoAsker asker = new UserInfoAsker(RS1.executor);
+        final Server LS1 = Server.create("Router LAN", LOCAL_ROOT_URL_S1, new UhttpdFileInfoParser(), true);
+        final Server RS1 = Server.create("Router WAN", ROOT_URL_S1, new LighttpdFileInfoParser(), false);
+        final Server LS2 = Server.create("Debian LAN", LOCAL_ROOT_URL_S2, new ApacheFileInfoParser(), true);
+        final Server RS2 = Server.create("Debian WAN", ROOT_URL_S2, new ApacheFileInfoParser(), false);
+        final UserInfoAsker asker = new UserInfoAsker(RS1.executor, RS2.executor);
         final StatusBar sb = asker.getStatusBar();
         sb.setProgress("Névtelen bejelentkezés kísérlet...");
         new Thread(new Runnable() {

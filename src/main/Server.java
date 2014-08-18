@@ -20,8 +20,8 @@ public class Server {
         this.parser = parser;
     }
 
-    public static Server create(String visibleName, String rootUrl, FileInfoParser parser) {
-        return new Server(visibleName, rootUrl, new HttpExecutor(rootUrl).setRequestType(HttpExecutor.RequestType.GET), parser);
+    public static Server create(String visibleName, String rootUrl, FileInfoParser parser, boolean validCert) {
+        return new Server(visibleName, rootUrl, new HttpExecutor(rootUrl, validCert).setRequestType(HttpExecutor.RequestType.GET), parser);
     }
 
     @Override

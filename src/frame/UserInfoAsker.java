@@ -18,7 +18,7 @@ public class UserInfoAsker extends StatusBarFrame {
 
     private int cancelled = 0;
     private boolean checking = false, disposed = false;
-    private final HttpExecutor executor;
+    private final HttpExecutor[] executors;
     private static final Pattern pattUsr = Pattern.compile("^[a-z0-9_-]{3,15}$");
     private static final Pattern pattPwd = Pattern.compile("^[a-z0-9]{6,18}$");
     private SwingWorker checker;
@@ -26,8 +26,8 @@ public class UserInfoAsker extends StatusBarFrame {
     private final JTextField TF_NAME = new JTextField(10);
     private final JPasswordField TF_PASSWD = new JPasswordField();
     
-    public UserInfoAsker(HttpExecutor executor) {
-        this.executor = executor;
+    public UserInfoAsker(HttpExecutor ... executors) {
+        this.executors = executors;
         initFrame();
     }
     
@@ -65,12 +65,14 @@ public class UserInfoAsker extends StatusBarFrame {
     }
     
     private boolean isValidated() {
-        if (executor != null) return executor.getStatus() == FileInfoParser.OK;
+        if (executors != null && executors.length > 0) return executors[0].getStatus() == FileInfoParser.OK;
         return false;
     }
     
     private void initExecutor(String user, String password) {
-        executor.setUsrAndPswd(user, password);
+        for (HttpExecutor executor : executors) {
+            executor.setUsrAndPswd(user, password);
+        }
     }
     
     @Override
@@ -161,6 +163,7 @@ public class UserInfoAsker extends StatusBarFrame {
             protected Object doInBackground() throws Exception {
                 try {
                     int tmp = cancelled;
+                    HttpExecutor executor = executors[0];
                     executor.getResponse();
                     if (tmp == cancelled) {
                         if (executor.getStatus() == FileInfoParser.UNAUTHORIZED) {
